@@ -6,17 +6,17 @@ import "ace-builds/src-noconflict/theme-tomorrow";
 import "ace-builds/src-noconflict/ext-language_tools";
 
 const Editor = ({value, onCodeChange}) => {
-    const [size, setSize] = useState((window.innerHeight - 50) + "px");
+    const [size, setSize] = useState((window.innerHeight - 90) + "px");
 
     useEffect(() => {
         window.addEventListener("resize", resizeHandler);
         return () => {
             window.removeEventListener("resize", resizeHandler);
         }
-    })
+    }, [])
 
     const resizeHandler = () => {
-        setSize((window.innerHeight - 50) + "px");
+        setSize((window.innerHeight - 90) + "px");
     }
 
     return (
