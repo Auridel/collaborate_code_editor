@@ -10,18 +10,21 @@ const App = () => {
     const [popup, setPopup] = useState(false);
     const [room, setRoom] = useState("");
 
+
     useEffect(() => {
         setCode("console.log(`Hello world!`)");
-        socket.on("USER:JOINED", onJoin);
+        // socket.on("USER:JOINED", onJoin);
         socket.on("CODE:NEW", onNewCode);
         socket.on("ROOM:CREATED", onCreate);
         socket.on("JOIN:SUCCESS", onSuccess);
         socket.on("JOIN:FAILED", () => console.log("fail"))
     }, []);
 
-    const onJoin = () => {
-        socket.emit("CODE:UPDATE", {roomId: room, code})
-    }
+    // const onJoin = () => {
+    //     setTimeout(() => socket.emit("CODE:UPDATE", {roomId: room, code: aceRef.current.value}), 100);
+    //     console.log("joined")
+    //     console.log(aceRef.current.value)
+    // }
     const onNewCode = ({code}) => {
         setCode(code);
     }
@@ -34,28 +37,31 @@ const App = () => {
     const onCodeChange = (input) => {
         setCode(input);
         if(room){
-            socket.emit("CODE:UPDATE", {roomId: room, code})
+            socket.emit("CODE:UPDATE", {roomId: room, code: input})
         }
     }
-    const onSuccess = ({roomId}) => {
+    const onSuccess = ({roomId, code}) => {
         setRoom(roomId);
+        setCode(code);
     }
 
     return (
         <div className="app">
             <h1 className="header">Collaborate Code Editor</h1>
             <nav className="nav">
-                <button
-                    onClick={() => {
-                        socket.emit("ROOM:CREATE");
-                    }}
-                    className="nav-btn">Create new room</button>
+                {room? "" :
+                    <button
+                        onClick={() => {
+                            socket.emit("ROOM:CREATE");
+                        }}
+                        className="nav-btn">Create new room</button>}
                 <span className="status">{room? `RoomID: ${room}` : "Current mode: Offline"}</span>
-                <button
-                    onClick={() => {
-                        setPopup(true);
-                    }}
-                    className="nav-btn">Connect to room</button>
+                {room? "" :
+                    <button
+                        onClick={() => {
+                            setPopup(true);
+                        }}
+                        className="nav-btn">Connect to room</button>}
             </nav>
             <Editor value={code} onCodeChange={onCodeChange}/>
             <Console code={code}/>

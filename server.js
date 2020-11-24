@@ -8,9 +8,8 @@ const User = require("./models/user");
 const {MONGODB_URI} = require("./keys");
 const {v4 : uuidv4} = require("uuid");
 
-io.on("connection", async (socket) => {
+io.on("connection", (socket) => {
     console.log(socket.id);
-
 
     socket.on("ROOM:CREATE", async () => {
         try{
@@ -23,7 +22,8 @@ io.on("connection", async (socket) => {
             }
             await user.save();
             await room.save();
-            socket.join(toString(room._id));
+            console.log(room._id)
+            socket.join(room._id.toString());
             io.to(socket.id).emit("ROOM:CREATED", {roomId: room._id});
         }catch (e) {
             console.log(e);
@@ -44,8 +44,8 @@ io.on("connection", async (socket) => {
                 await user.save();
                 await room.save();
                 socket.join(roomId);
-                io.to(socket.id).emit("JOIN:SUCCESS", {roomId})
-                socket.to(roomId).broadcast.emit("USER:JOINED", {users: room.users})
+                io.to(socket.id).emit("JOIN:SUCCESS", {roomId, code: room.code});
+                socket.to(roomId).broadcast.emit("USER:JOINED");
             }else {
                 io.to(socket.id).emit("JOIN:FAILED");
             }
@@ -54,8 +54,9 @@ io.on("connection", async (socket) => {
         }
     })
 
-    socket.on("CODE:UPDATE", ({roomId, code}) => {
-        socket.to(roomId).broadcast.emit("CODE:NEW", {code})
+    socket.on("CODE:UPDATE", async ({roomId, code}) => {
+        await Room.findOneAndUpdate({_id: new mongoose.Types.ObjectId(roomId)}, {code: code});
+        socket.to(roomId).broadcast.emit("CODE:NEW", {code});
     })
 
     socket.on("disconnect", async () => {
@@ -64,9 +65,13 @@ io.on("connection", async (socket) => {
             async function deleteUser(roomData) {
                 try {
                     const room = await Room.findById(new mongoose.Types.ObjectId(roomData.id));
-                    room.users = room.users.filter(item => item !== socket.id);
-                    if(!room.users.length) await Room.deleteOne({_id: new mongoose.Types.ObjectId(roomData.id)});
-                    else await room.save();
+                    console.log(room)
+                    console.log(roomData)
+                    if(room){
+                        room.users = room.users.filter(item => item !== socket.id);
+                        if(!room.users.length) await Room.deleteOne({_id: new mongoose.Types.ObjectId(roomData.id)});
+                        else await room.save();
+                    }
                 }catch (e) {
                     console.log(e);
                 }
@@ -89,7 +94,8 @@ async function start() {
     try{
         await mongoose.connect(MONGODB_URI, {
             useNewUrlParser: true,
-            useUnifiedTopology: true
+            useUnifiedTopology: true,
+            useFindAndModify: false
         })
         server.listen(PORT, () => {
             console.log(`Server is running on port: ${PORT}...`);
