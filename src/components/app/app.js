@@ -1,9 +1,12 @@
 import React, {useState, useEffect} from 'react';
-import "./app.scss";
+import { ToastContainer, toast } from 'react-toastify';
 import Editor from "../editor/editor";
 import Console from "../console/console";
 import socket from "../../socket";
 import Popup from "../popup/popup";
+
+import 'react-toastify/dist/ReactToastify.css';
+import "./app.scss";
 
 const App = () => {
     const [code, setCode] = useState("");
@@ -13,18 +16,16 @@ const App = () => {
 
     useEffect(() => {
         setCode("console.log(`Hello world!`)");
-        // socket.on("USER:JOINED", onJoin);
+        socket.on("USER:JOINED", onJoin);
         socket.on("CODE:NEW", onNewCode);
         socket.on("ROOM:CREATED", onCreate);
         socket.on("JOIN:SUCCESS", onSuccess);
         socket.on("JOIN:FAILED", () => console.log("fail"))
     }, []);
 
-    // const onJoin = () => {
-    //     setTimeout(() => socket.emit("CODE:UPDATE", {roomId: room, code: aceRef.current.value}), 100);
-    //     console.log("joined")
-    //     console.log(aceRef.current.value)
-    // }
+    const onJoin = () => {
+        notify("User Joined!");
+    }
     const onNewCode = ({code}) => {
         setCode(code);
     }
@@ -43,10 +44,25 @@ const App = () => {
     const onSuccess = ({roomId, code}) => {
         setRoom(roomId);
         setCode(code);
+        setPopup(false);
     }
+
+    const notify = (msg) => {
+        toast.success(msg, {
+            position: "top-right",
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+        });
+    }
+
 
     return (
         <div className="app">
+            <ToastContainer/>
             <h1 className="header">Collaborate Code Editor</h1>
             <nav className="nav">
                 {room? "" :

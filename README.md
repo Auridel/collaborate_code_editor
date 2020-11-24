@@ -1,3 +1,3 @@
 # Live Code Editor
 
-https://code-editor-mu.vercel.app/
+Stack: Node+Express, MongoDB, React, Socket.io
