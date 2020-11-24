@@ -5,12 +5,10 @@ const userSchema = new Schema({
         type: String,
         required: true
     },
-    rooms: [{
-        id: {
-            type: String,
-            required: true
-        }
-    }]
+    rooms: {
+        type: Array,
+        required: true
+    }
 });
 
 module.exports = model("User", userSchema);

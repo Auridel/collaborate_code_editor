@@ -4,7 +4,7 @@ const Console = ({code}) => {
     const [logs, setLogs] = useState([]);
     const [errors, setErrors] = useState([])
 
-    window.console.log = function(){
+    window._logs = function(){
         setLogs((prev) => [...prev, ...Array.from(arguments)]);
     }
 
@@ -18,7 +18,7 @@ const Console = ({code}) => {
 
     const runCode = (data) => {
         try{
-            eval(data);
+            eval(data.replace(/console.log/g, "_logs"));
         }catch (e) {
             setErrors([e.name, e.message])
         }

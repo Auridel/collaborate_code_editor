@@ -14,10 +14,17 @@ io.on("connection", async (socket) => {
 
     socket.on("ROOM:CREATE", async () => {
         try{
-            const room = new Room({users: [{id: socket.id}], code: ""});
+            const room = new Room({users: [socket.id]});
+            let user = await User.findOne({socketId: socket.id});
+            if(!user){
+                user = new User({socketId: socket.id, rooms: room._id});
+            }else {
+                user.rooms = [...user.rooms, room._id];
+            }
+            await user.save();
             await room.save();
-            socket.join(room._id);
-            io.to(socket.id).emit("ROOM:CREATED", {roomId: room._id, code: room.code});
+            socket.join(toString(room._id));
+            io.to(socket.id).emit("ROOM:CREATED", {roomId: room._id});
         }catch (e) {
             console.log(e);
         }
@@ -25,12 +32,20 @@ io.on("connection", async (socket) => {
 
     socket.on("ROOM:JOIN", async ({roomId}) => {
         try {
-            const room = await Room.findOne({_id: roomId});
+            const room = await Room.findById(new mongoose.Types.ObjectId(roomId));
             if(room){
                 room.users = [...room.users, socket.id];
+                let user = await User.findOne({socketId: socket.id});
+                if(!user){
+                    user = new User({socketId: socket.id, rooms: [roomId]});
+                }else {
+                    user.rooms = [...user.rooms, roomId];
+                }
+                await user.save();
                 await room.save();
                 socket.join(roomId);
-                io.to(socket.id).emit("USER:JOINED", {users: room.users, code: room.code})
+                io.to(socket.id).emit("JOIN:SUCCESS", {roomId})
+                socket.to(roomId).broadcast.emit("USER:JOINED", {users: room.users})
             }else {
                 io.to(socket.id).emit("JOIN:FAILED");
             }
@@ -39,14 +54,19 @@ io.on("connection", async (socket) => {
         }
     })
 
+    socket.on("CODE:UPDATE", ({roomId, code}) => {
+        socket.to(roomId).broadcast.emit("CODE:NEW", {code})
+    })
+
     socket.on("disconnect", async () => {
         try {
             const user = await User.findOne({socketId: socket.id});
-            async function deleteUser(room) {
+            async function deleteUser(roomData) {
                 try {
-                    const room = await Room.findOne({_id: room.id});
+                    const room = await Room.findById(new mongoose.Types.ObjectId(roomData.id));
                     room.users = room.users.filter(item => item !== socket.id);
-                    await room.save();
+                    if(!room.users.length) await Room.deleteOne({_id: new mongoose.Types.ObjectId(roomData.id)});
+                    else await room.save();
                 }catch (e) {
                     console.log(e);
                 }
@@ -55,6 +75,7 @@ io.on("connection", async (socket) => {
                 user.rooms.forEach(room => {
                     deleteUser(room);
                 })
+                await User.deleteOne({socketId: socket.id});
             }
         }catch (e) {
             console.log(e);
